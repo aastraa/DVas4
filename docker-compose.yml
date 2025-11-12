@@ -1,0 +1,53 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    restart: unless-stopped
+    networks: [default]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=24h
+    ports: ["9090:9090"]
+
+  node_exporter:
+    image: prom/node-exporter:v1.8.1
+    restart: unless-stopped
+    networks: [default]
+    ports: ["9100:9100"]
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    restart: unless-stopped
+    networks: [default]
+    ports: ["3001:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana:/var/lib/grafana
+
+  mysql:
+    image: mysql:8.3
+    restart: unless-stopped
+    networks: [default]
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    ports: ["3306:3306"]
+
+  mysqld_exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    restart: unless-stopped
+    networks: [default]
+    command: ["--config.my-cnf=/etc/mysql/.my.cnf"]
+    volumes:
+      - ./mysqld.cnf:/etc/mysql/.my.cnf:ro
+    ports: ["9104:9104"]
+    depends_on: [mysql]
+
+  custom_exporter:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: ["sh","-c","pip install --no-cache-dir prometheus_client requests && python custom_exporter.py"]
+    ports: ["8000:8000"]

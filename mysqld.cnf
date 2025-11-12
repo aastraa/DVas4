@@ -1,0 +1,4 @@
+[client]
+user=exporter
+password=exporter_password
+host=mysql
